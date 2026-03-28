@@ -12,31 +12,34 @@ def enviar(msg):
     requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
 
 def pegar_resultados():
-    r = requests.get(URL)
-    soup = BeautifulSoup(r.text, "html.parser")
+    try:
+        r = requests.get(URL)
+        soup = BeautifulSoup(r.text, "html.parser")
 
-    resultados = []
+        resultados = []
 
-    # tenta pegar os blocos B / P / TIE
-    for item in soup.find_all("div"):
-        txt = item.text.strip()
-        if txt in ["B", "P", "TIE"]:
-            resultados.append(txt)
+        for item in soup.find_all("div"):
+            txt = item.text.strip()
+            if txt in ["B", "P", "TIE"]:
+                resultados.append(txt)
 
-    return resultados[-10:]  # últimos 10
+        print("RESULTADOS:", resultados)
+
+        return resultados[-10:]
+
+    except:
+        return []
 
 def analisar(h):
     if len(h) < 5:
         return None
 
-    # Reversão
     if h[-3:] == ["B","B","B"]:
         return ("PLAYER", "Reversão")
 
     if h[-3:] == ["P","P","P"]:
         return ("BANKER", "Reversão")
 
-    # Alternância
     if h[-4:] == ["B","P","B","P"]:
         return ("BANKER", "Continuidade")
 
@@ -54,21 +57,27 @@ def enviar_sinal(entrada, estrategia):
 """
     enviar(msg)
 
+def status(msg):
+    enviar(f"⚙️ STATUS: {msg}")
+
 historico_antigo = []
 
+status("BOT INICIADO")
+
 while True:
-    try:
-        h = pegar_resultados()
+    h = pegar_resultados()
 
-        if h != historico_antigo:
-            historico_antigo = h
+    if not h:
+        status("Sem dados do site")
+        time.sleep(30)
+        continue
 
-            sinal = analisar(h)
+    if h != historico_antigo:
+        historico_antigo = h
 
-            if sinal:
-                enviar_sinal(sinal[0], sinal[1])
+        sinal = analisar(h)
 
-        time.sleep(10)
+        if sinal:
+            enviar_sinal(sinal[0], sinal[1])
 
-    except:
-        time.sleep(15)
+    time.sleep(10)
