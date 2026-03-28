@@ -1,16 +1,12 @@
 import requests
 import time
-import random
 
 TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
 CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
-# ------------------------
-
 entrada_ativa = None
-ultimo_id = None
 ultimo_processado = None
 
 gale = 0
@@ -21,6 +17,9 @@ historico = []
 wins = 0
 losses = 0
 total = 0
+
+# 🔥 NOVA VARIÁVEL (EVITA REPETIÇÃO DO RELATÓRIO)
+ultimo_relatorio = 0
 
 # ------------------------
 
@@ -55,55 +54,21 @@ def pegar_dados():
 
 # ------------------------
 
+# 🔥 ESTRATÉGIA
 def analisar(h):
-    if len(h) < 10:
-        return None, 0
+    if len(h) < 6:
+        return None
 
-    score = 0
-    entrada = None
+    if h[-4:] == ["B","B","B","B"]:
+        return ("PLAYER", "Reversão forte 4x")
 
-    # 🔥 TENDÊNCIA LONGA (mais forte)
-    if h[-5:] == ["B","B","B","B","B"]:
-        score += 5
-        entrada = "P"
+    if h[-4:] == ["P","P","P","P"]:
+        return ("BANKER", "Reversão forte 4x")
 
-    elif h[-5:] == ["P","P","P","P","P"]:
-        score += 5
-        entrada = "B"
+    if h[-5:] == ["B","P","B","P","B"]:
+        return ("P", "Alternância")
 
-    # 🔥 TENDÊNCIA MÉDIA (com confirmação)
-    elif h[-4:] == ["B","B","B","B"]:
-        score += 3
-        entrada = "P"
-
-    elif h[-4:] == ["P","P","P","P"]:
-        score += 3
-        entrada = "B"
-
-    # 🔥 CONFIRMAÇÃO DE CONTINUIDADE
-    if h[-3:] == ["B","B","B"]:
-        score += 2
-
-    if h[-3:] == ["P","P","P"]:
-        score += 2
-
-    # 🔥 FILTRO CHOP FORTE (EVITA LIXO)
-    if h[-6:] == ["B","P","B","P","B","P"]:
-        return None, 0
-
-    if h[-6:] == ["P","B","P","B","P","B"]:
-        return None, 0
-
-    # 🔥 FILTRO DE ALEATORIEDADE
-    ultimos = h[-6:]
-    if ultimos.count("B") == 3 and ultimos.count("P") == 3:
-        return None, 0
-
-    # 🔥 REGRA FINAL DE QUALIDADE
-    if score < 7:
-        return None, score
-
-    return entrada, score
+    return None
 
 # ------------------------
 
@@ -135,7 +100,7 @@ def placar():
 
 # ------------------------
 
-enviar("🚀 BOT CORRIGIDO INICIADO")
+enviar("🚀 BOT INICIADO")
 
 while True:
 
@@ -145,7 +110,6 @@ while True:
         time.sleep(1)
         continue
 
-    # 🔒 evita processar o mesmo resultado
     if game_id == ultimo_processado:
         time.sleep(1)
         continue
@@ -157,13 +121,13 @@ while True:
     print("RESULTADO:", resultado)
 
     # =========================
-    # 🔥 PROCESSAR ENTRADA ATIVA
+    # PROCESSAR ENTRADA
     # =========================
 
     if entrada_ativa:
 
         if resultado == "T":
-            enviar("⚖️ TIE — sem perda")
+            enviar("⚖️ TIE")
 
         elif resultado == entrada_ativa:
 
@@ -183,13 +147,13 @@ while True:
             else:
                 atualizar_stats(False)
 
-                enviar("❌ LOSS FINAL")
+                enviar("❌ LOSS")
 
                 entrada_ativa = None
                 gale = 0
 
     # =========================
-    # 🔥 NOVA ENTRADA
+    # NOVA ENTRADA
     # =========================
 
     if entrada_ativa is None:
@@ -204,16 +168,19 @@ while True:
             enviar_entrada(entrada, score)
 
     # =========================
-    # 📊 RELATÓRIO
+    # RELATÓRIO (SEM REPETIR)
     # =========================
 
-    if total > 0 and total % 10 == 0:
+    if total > 0 and total % 10 == 0 and total != ultimo_relatorio:
+
         enviar(f"""
 📊 RELATÓRIO
 
 🏆 Wins: {wins}
-❌ Loss: {losses}
+❌ Losses: {losses}
 📈 Winrate: {placar():.2f}%
 """)
+
+        ultimo_relatorio = total
 
     time.sleep(1)
