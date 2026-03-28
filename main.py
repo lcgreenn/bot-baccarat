@@ -9,28 +9,28 @@ URL = "https://gamblingcounting.com/evolution-speed-baccarat-a/"
 
 def enviar(msg):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+    try:
+        requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+    except:
+        pass
 
 def pegar_resultados():
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
-
-        r = requests.get(URL, headers=headers)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(URL, headers=headers, timeout=10)
         soup = BeautifulSoup(r.text, "html.parser")
 
         resultados = []
 
-        # pega os círculos (onde ficam B, P, T)
-        for span in soup.find_all("span"):
-            txt = span.text.strip()
+        # pega os círculos pelos estilos/classes
+        for div in soup.find_all("div"):
+            classes = str(div.get("class"))
 
-            if txt == "B":
+            if "red" in classes:
                 resultados.append("B")
-            elif txt == "P":
+            elif "blue" in classes:
                 resultados.append("P")
-            elif txt == "T":
+            elif "green" in classes:
                 resultados.append("T")
 
         print("RESULTADOS:", resultados)
@@ -39,20 +39,18 @@ def pegar_resultados():
 
     except Exception as e:
         print("ERRO:", e)
-        return []
+        return None
 
 def analisar(h):
     if len(h) < 5:
         return None
 
-    # Reversão forte
     if h[-3:] == ["B","B","B"]:
         return ("PLAYER", "Reversão 3x")
 
     if h[-3:] == ["P","P","P"]:
         return ("BANKER", "Reversão 3x")
 
-    # Alternância
     if h[-4:] == ["B","P","B","P"]:
         return ("BANKER", "Continuidade")
 
@@ -70,19 +68,15 @@ def enviar_sinal(entrada, estrategia):
 """
     enviar(msg)
 
-def status(msg):
-    enviar(f"⚙️ STATUS: {msg}")
-
 historico_antigo = []
 
-status("BOT ONLINE (DADOS REAIS)")
+enviar("⚙️ BOT LENDO CORES (DADOS REAIS)")
 
 while True:
     h = pegar_resultados()
 
     if not h:
-        status("Erro ao puxar dados")
-        time.sleep(30)
+        time.sleep(20)
         continue
 
     if h != historico_antigo:
@@ -93,4 +87,4 @@ while True:
         if sinal:
             enviar_sinal(sinal[0], sinal[1])
 
-    time.sleep(10)
+    time.sleep(15)
