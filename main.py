@@ -1,18 +1,29 @@
 import requests
+from bs4 import BeautifulSoup
 import time
-import random
 
 TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
 CHAT_ID = "@lcgreenbaccarat"
+
+URL = "https://www.casino.org/casinoscores/pt-br/speed-baccarat-a/"
 
 def enviar(msg):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
 
-historico = []
+def pegar_resultados():
+    r = requests.get(URL)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-def gerar_resultado():
-    return random.choice(["P", "B"])  # Player / Banker
+    resultados = []
+
+    # tenta pegar os blocos B / P / TIE
+    for item in soup.find_all("div"):
+        txt = item.text.strip()
+        if txt in ["B", "P", "TIE"]:
+            resultados.append(txt)
+
+    return resultados[-10:]  # últimos 10
 
 def analisar(h):
     if len(h) < 5:
@@ -43,14 +54,21 @@ def enviar_sinal(entrada, estrategia):
 """
     enviar(msg)
 
+historico_antigo = []
+
 while True:
-    resultado = gerar_resultado()
-    historico.append(resultado)
+    try:
+        h = pegar_resultados()
 
-    sinal = analisar(historico)
+        if h != historico_antigo:
+            historico_antigo = h
 
-    if sinal:
-        enviar_sinal(sinal[0], sinal[1])
-        time.sleep(60)
+            sinal = analisar(h)
 
-    time.sleep(10)
+            if sinal:
+                enviar_sinal(sinal[0], sinal[1])
+
+        time.sleep(10)
+
+    except:
+        time.sleep(15)
