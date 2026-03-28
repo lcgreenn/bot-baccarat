@@ -20,30 +20,32 @@ def pegar_resultado():
         r = requests.get(URL, timeout=10)
         data = r.json()
 
-        # tenta pegar outcome
-        outcome = data.get("outcome")
+        outcome = data["data"]["result"]["outcome"]
 
-        if outcome:
-            if "banker" in outcome.lower():
-                return "B"
-            elif "player" in outcome.lower():
-                return "P"
-            elif "tie" in outcome.lower():
-                return "T"
+        if outcome == "Banker":
+            return "B"
+        elif outcome == "Player":
+            return "P"
+        elif outcome == "Tie":
+            return "T"
 
-    except:
-        return None
+    except Exception as e:
+        print("ERRO API:", e)
+
+    return None
 
 def analisar(h):
     if len(h) < 5:
         return None
 
+    # Reversão
     if h[-3:] == ["B","B","B"]:
         return ("PLAYER", "Reversão 3x")
 
     if h[-3:] == ["P","P","P"]:
         return ("BANKER", "Reversão 3x")
 
+    # Alternância
     if h[-4:] == ["B","P","B","P"]:
         return ("BANKER", "Continuidade")
 
@@ -59,6 +61,8 @@ def enviar_sinal(entrada, estrategia):
 
 🔥 FOCO
 """)
+
+# ------------------------
 
 historico = []
 ultimo = None
