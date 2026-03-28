@@ -6,6 +6,8 @@ CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
+# ------------------------
+
 def enviar(msg):
     try:
         requests.post(
@@ -32,37 +34,63 @@ def pegar_resultado():
     except:
         return None
 
-# 🔥 ESTRATÉGIA MELHORADA (menos sinais)
+# ------------------------
+# 🔥 ANÁLISE MELHORADA
+
 def analisar(h):
-    if len(h) < 6:
+    if len(h) < 8:
         return None
 
-    # sequência forte (4 iguais)
-    if h[-4:] == ["B","B","B","B"]:
-        return ("PLAYER", "Reversão forte 4x")
+    # reversão forte
+    if h[-5:] == ["B","B","B","B","B"]:
+        return ("P", "Reversão 5x")
 
-    if h[-4:] == ["P","P","P","P"]:
-        return ("BANKER", "Reversão forte 4x")
+    if h[-5:] == ["P","P","P","P","P"]:
+        return ("B", "Reversão 5x")
 
-    # padrão alternado forte
-    if h[-5:] == ["B","P","B","P","B"]:
-        return ("P", "Alternância")
+    # alternância
+    if h[-6:] == ["B","P","B","P","B","P"]:
+        return ("B", "Alternância longa")
+
+    if h[-6:] == ["P","B","P","B","P","B"]:
+        return ("P", "Alternância longa")
+
+    # tendência
+    if h[-3:] == ["B","B","B"]:
+        return ("B", "Trend 3x")
+
+    if h[-3:] == ["P","P","P"]:
+        return ("P", "Trend 3x")
+
+    # quebra
+    if h[-4:] == ["B","B","P","B"]:
+        return ("P", "Quebra")
+
+    if h[-4:] == ["P","P","B","P"]:
+        return ("B", "Quebra")
+
+    # filtro anti-surf simples
+    if len(h) >= 10:
+        b = h[-10:].count("B")
+        p = h[-10:].count("P")
+        if abs(b - p) < 2:
+            return None
 
     return None
 
+# ------------------------
+
 def enviar_entrada(entrada, estrategia):
     enviar(f"""
-🚨 ENTRADA CONFIRMADA
+🚨 ENTRADA
 
-🎯 Entrada: {entrada}
-📊 Estratégia: {estrategia}
+🎯 {entrada}
+📊 {estrategia}
 🛡️ Gale: 1
-
-🔥 FOCO TOTAL
 """)
 
-def enviar_resultado(resultado):
-    if resultado:
+def enviar_resultado(win):
+    if win:
         enviar("✅ WIN")
     else:
         enviar("❌ LOSS")
@@ -75,7 +103,7 @@ ultimo = None
 entrada_ativa = None
 gale = 0
 
-enviar("🚀 BOT VIP ONLINE")
+enviar("🚀 BOT ONLINE")
 
 while True:
     resultado = pegar_resultado()
@@ -86,29 +114,39 @@ while True:
 
         print("RESULTADO:", resultado)
 
-        # 🔥 SE TEM ENTRADA ATIVA
+        # ------------------------
+        # 🔥 SE EXISTE ENTRADA ATIVA
         if entrada_ativa:
-            esperado = entrada_ativa
+            esperado = entrada_ativa["lado"]
 
             if resultado == esperado:
                 enviar_resultado(True)
                 entrada_ativa = None
                 gale = 0
 
-            elif gale == 0:
-                gale = 1
-                enviar("⚠️ GALE 1")
-
             else:
-                enviar_resultado(False)
-                entrada_ativa = None
-                gale = 0
+                # gale 1
+                if gale == 0:
+                    gale = 1
+                    enviar("⚠️ GALE 1")
 
+                # gale 2
+                else:
+                    enviar_resultado(False)
+                    entrada_ativa = None
+                    gale = 0
+
+        # ------------------------
+        # 🔥 SE NÃO TEM ENTRADA ATIVA
         else:
             sinal = analisar(historico)
 
             if sinal:
-                entrada_ativa = sinal[0][0]  # B ou P
+                entrada_ativa = {
+                    "lado": sinal[0],
+                    "estrategia": sinal[1]
+                }
+
                 enviar_entrada(sinal[0], sinal[1])
 
-    time.sleep(5)
+    time.sleep(2)  # ⏱️ mais rápido pra teste
