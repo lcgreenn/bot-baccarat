@@ -7,8 +7,6 @@ CHAT_ID = "@lcgreenbaccarat"
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
 entrada_ativa = None
-ultimo_processado = None
-
 gale = 0
 MAX_GALE = 1
 
@@ -18,10 +16,11 @@ wins = 0
 losses = 0
 total = 0
 
-ultimo_relatorio = 0
+ultimo_game = None
 
-# 🔥 CONTROLE DE RECUPERAÇÃO
-ultima_acao = time.time()
+# 🔥 controle de travamento
+ultimo_update = time.time()
+TIMEOUT_RESET = 60  # segundos
 
 # ------------------------
 
@@ -136,17 +135,6 @@ def analisar(h):
 
 # ------------------------
 
-def enviar_entrada(entrada, score):
-    enviar(f"""
-🚨 ENTRADA
-
-🎯 {entrada}
-📊 Score: {score}/10
-🛡️ Gale: {MAX_GALE}
-""")
-
-# ------------------------
-
 def atualizar_stats(win):
     global wins, losses, total
 
@@ -157,64 +145,62 @@ def atualizar_stats(win):
     else:
         losses += 1
 
-def placar():
+# ------------------------
+
+def winrate():
     if total == 0:
         return 0
     return (wins / total) * 100
 
 # ------------------------
 
-enviar("🚀 BOT INICIADO")
+enviar("🚀 BOT INICIADO (BLINDADO)")
 
 while True:
 
-    # 🔥 AUTO-RECUPERAÇÃO (DESTRAVA O BOT)
-    if time.time() - ultima_acao > 120:
-        enviar("🔄 BOT DESINCRONIZADO — RESET AUTOMÁTICO")
-
-        entrada_ativa = None
-        gale = 0
-        ultimo_processado = None
-
-        ultima_acao = time.time()
-
     game_id, resultado = pegar_dados()
 
-    if not game_id or not resultado:
+    if not game_id:
         time.sleep(1)
         continue
 
-    if game_id == ultimo_processado:
+    # 🔥 SINCRONIZAÇÃO
+    if game_id == ultimo_game:
         time.sleep(1)
         continue
 
-    ultimo_processado = game_id
+    ultimo_game = game_id
+    ultimo_update = time.time()
+
+    # 🔥 RESET AUTOMÁTICO SE TRAVAR
+    if time.time() - ultimo_update > TIMEOUT_RESET:
+        enviar("♻️ RESET AUTOMÁTICO (DESINCRONIZADO)")
+        entrada_ativa = None
+        gale = 0
+        historico.clear()
+
+    # 🔥 TIE (NEUTRO)
+    if resultado == "T":
+        enviar("⚖️ TIE")
+        continue
+
     historico.append(resultado)
 
     print("RESULTADO:", resultado)
 
-    # 🔥 atualiza ação
-    ultima_acao = time.time()
-
     # =========================
-    # PROCESSAR ENTRADA
+    # PROCESSAMENTO
     # =========================
 
     if entrada_ativa:
 
-        if resultado == "T":
-            enviar("⚖️ TIE")
-
-        elif resultado == entrada_ativa:
+        if resultado == entrada_ativa:
 
             atualizar_stats(True)
-
             enviar("✅ WIN")
 
             entrada_ativa = None
             gale = 0
-
-            ultima_acao = time.time()
 
         else:
 
@@ -222,17 +208,12 @@ while True:
                 gale += 1
                 enviar(f"⚠️ GALE {gale}")
 
-                ultima_acao = time.time()
-
             else:
                 atualizar_stats(False)
-
                 enviar("❌ LOSS")
 
                 entrada_ativa = None
                 gale = 0
-
-                ultima_acao = time.time()
 
     # =========================
     # NOVA ENTRADA
@@ -247,26 +228,24 @@ while True:
             entrada_ativa = entrada
             gale = 0
 
-            enviar_entrada(entrada, score)
+            enviar(f"""
+🚨 ENTRADA
 
-            ultima_acao = time.time()
+🎯 {entrada}
+📊 Score: {score}/10
+""")
 
     # =========================
-    # RELATÓRIO (SEM REPETIR)
+    # RELATÓRIO (SEM REPETIÇÃO)
     # =========================
 
-    if total > 0 and total % 10 == 0 and total != ultimo_relatorio:
-
+    if total > 0 and total % 10 == 0:
         enviar(f"""
 📊 RELATÓRIO
 
 🏆 Wins: {wins}
 ❌ Losses: {losses}
-📈 Winrate: {placar():.2f}%
+📈 Winrate: {winrate():.2f}%
 """)
-
-        ultimo_relatorio = total
-
-        ultima_acao = time.time()
 
     time.sleep(1)
