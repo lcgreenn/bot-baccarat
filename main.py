@@ -1,8 +1,8 @@
 import requests
 import time
 
-TOKEN = "SEU_TOKEN_AQUI"
-CHAT_ID = "@SEU_CANAL_AQUI"
+TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
+CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
