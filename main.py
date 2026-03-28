@@ -57,7 +57,7 @@ def pegar_dados():
 # 🧠 SCORE PROFISSIONAL
 
 def analisar(h):
-    if len(h) < 8:
+    if len(h) < 3:
         return None, 0
 
     score = 0
