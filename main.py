@@ -11,13 +11,13 @@ URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/la
 
 entrada_ativa = None
 ultimo_id = None
+ultimo_processado = None
 
 gale = 0
 MAX_GALE = 1
 
 historico = []
 
-# 📊 ESTATÍSTICAS
 wins = 0
 losses = 0
 total = 0
@@ -54,52 +54,54 @@ def pegar_dados():
         return None, None
 
 # ------------------------
-# 🧠 SCORE PROFISSIONAL
 
 def analisar(h):
-    if len(h) < 8:
+    if len(h) < 10:
         return None, 0
 
     score = 0
     entrada = None
 
-    # 🔥 TENDÊNCIA FORTE
-    if h[-3:] == ["B","B","B"]:
-        score += 3
-        entrada = "B"
-
-    elif h[-3:] == ["P","P","P"]:
-        score += 3
+    # 🔥 TENDÊNCIA LONGA (mais forte)
+    if h[-5:] == ["B","B","B","B","B"]:
+        score += 5
         entrada = "P"
 
-    # 🔥 REVERSÃO
-    if h[-4:] == ["B","B","B","B"]:
-        score += 4
+    elif h[-5:] == ["P","P","P","P","P"]:
+        score += 5
+        entrada = "B"
+
+    # 🔥 TENDÊNCIA MÉDIA (com confirmação)
+    elif h[-4:] == ["B","B","B","B"]:
+        score += 3
         entrada = "P"
 
     elif h[-4:] == ["P","P","P","P"]:
-        score += 4
+        score += 3
         entrada = "B"
 
-    # 🔥 CONFIRMAÇÃO
-    if h[-2:] == ["B","B"]:
-        score += 1
+    # 🔥 CONFIRMAÇÃO DE CONTINUIDADE
+    if h[-3:] == ["B","B","B"]:
+        score += 2
 
-    if h[-2:] == ["P","P"]:
-        score += 1
+    if h[-3:] == ["P","P","P"]:
+        score += 2
 
-    # 🔥 FILTRO DE CHOP (MUITO IMPORTANTE)
+    # 🔥 FILTRO CHOP FORTE (EVITA LIXO)
     if h[-6:] == ["B","P","B","P","B","P"]:
         return None, 0
 
-    # 🔥 CONFLUÊNCIA DE FORÇA
-    if h[-5:].count("B") >= 4:
-        score += 2
-        entrada = "B"
+    if h[-6:] == ["P","B","P","B","P","B"]:
+        return None, 0
 
-    if h[-5:].count("P") >= 4:
-        score += 2
-        entrada = "P"
+    # 🔥 FILTRO DE ALEATORIEDADE
+    ultimos = h[-6:]
+    if ultimos.count("B") == 3 and ultimos.count("P") == 3:
+        return None, 0
+
+    # 🔥 REGRA FINAL DE QUALIDADE
+    if score < 7:
+        return None, score
 
     return entrada, score
 
@@ -107,14 +109,11 @@ def analisar(h):
 
 def enviar_entrada(entrada, score):
     enviar(f"""
-🚨 ENTRADA CONFIRMADA
+🚨 ENTRADA
 
-🎯 Entrada: {entrada}
+🎯 {entrada}
 📊 Score: {score}/10
-
 🛡️ Gale: {MAX_GALE}
-
-🔥 Sistema ativo
 """)
 
 # ------------------------
@@ -129,71 +128,87 @@ def atualizar_stats(win):
     else:
         losses += 1
 
-# ------------------------
-
 def placar():
     if total == 0:
         return 0
-
     return (wins / total) * 100
 
 # ------------------------
 
-enviar("🚀 BOT PROFISSIONAL INICIADO")
+enviar("🚀 BOT CORRIGIDO INICIADO")
 
 while True:
 
     game_id, resultado = pegar_dados()
 
-    if game_id and game_id != ultimo_id:
+    if not game_id or not resultado:
+        time.sleep(1)
+        continue
 
-        ultimo_id = game_id
-        historico.append(resultado)
+    # 🔒 evita processar o mesmo resultado
+    if game_id == ultimo_processado:
+        time.sleep(1)
+        continue
 
-        print("RESULTADO:", resultado)
+    ultimo_processado = game_id
 
-        # 🔥 RESULTADO DA ENTRADA
-        if entrada_ativa:
+    historico.append(resultado)
 
-            if resultado == "T":
-                enviar("⚖️ TIE — sem perda")
+    print("RESULTADO:", resultado)
 
-            elif resultado == entrada_ativa:
-                atualizar_stats(True)
+    # =========================
+    # 🔥 PROCESSAR ENTRADA ATIVA
+    # =========================
 
-                enviar("✅ WIN")
+    if entrada_ativa:
+
+        if resultado == "T":
+            enviar("⚖️ TIE — sem perda")
+
+        elif resultado == entrada_ativa:
+
+            atualizar_stats(True)
+
+            enviar("✅ WIN")
+
+            entrada_ativa = None
+            gale = 0
+
+        else:
+
+            if gale < MAX_GALE:
+                gale += 1
+                enviar(f"⚠️ GALE {gale}")
+
+            else:
+                atualizar_stats(False)
+
+                enviar("❌ LOSS FINAL")
 
                 entrada_ativa = None
                 gale = 0
 
-            else:
+    # =========================
+    # 🔥 NOVA ENTRADA
+    # =========================
 
-                if gale < MAX_GALE:
-                    gale += 1
-                    enviar(f"⚠️ GALE {gale}")
+    if entrada_ativa is None:
 
-                else:
-                    atualizar_stats(False)
-
-                    enviar("❌ LOSS FINAL")
-
-                    entrada_ativa = None
-                    gale = 0
-
-        # 🔥 NOVA ANÁLISE
         entrada, score = analisar(historico)
 
-        # 🔥 REGRA PROFISSIONAL DE ENTRADA
-        if entrada and score >= 6 and not entrada_ativa:
+        if entrada and score >= 6:
 
             entrada_ativa = entrada
             gale = 0
 
-            enviar_entrada(entrada_ativa, score)
+            enviar_entrada(entrada, score)
 
-        # 🔥 RELATÓRIO PERIÓDICO
-        if total > 0 and total % 10 == 0:
-            enviar(f"""
+    # =========================
+    # 📊 RELATÓRIO
+    # =========================
+
+    if total > 0 and total % 10 == 0:
+        enviar(f"""
 📊 RELATÓRIO
 
 🏆 Wins: {wins}
