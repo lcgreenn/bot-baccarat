@@ -68,6 +68,7 @@ def analisar(h):
     b = ultimos.count("B")
     p = ultimos.count("P")
 
+    # 🔥 MAIS AGRESSIVO: tendência leve
     if b >= 4:
         score += 2
         entrada = "B"
@@ -75,6 +76,7 @@ def analisar(h):
         score += 2
         entrada = "P"
 
+    # 🔥 REVERSÃO SIMPLES
     if ultimos[-3:] == ["B","B","B"]:
         score += 1
         entrada = "P"
