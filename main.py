@@ -1,10 +1,14 @@
 import requests
 import time
+import random
 
 TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
 CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
+
+# 🔥 MODO TESTE (simulação)
+MODO_TESTE = False
 
 # ------------------------
 
@@ -19,6 +23,9 @@ def enviar(msg):
 
 def pegar_resultado():
     try:
+        if MODO_TESTE:
+            return random.choice(["B","P"])
+
         r = requests.get(URL, timeout=10)
         data = r.json()
 
@@ -35,41 +42,46 @@ def pegar_resultado():
         return None
 
 # ------------------------
-# 🔥 ANÁLISE MELHORADA
+# 🔥 MÉTODOS (MAIS SINAIS)
 
 def analisar(h):
-    if len(h) < 8:
+    if len(h) < 6:
         return None
 
-    # reversão forte
+    # reversão longa
     if h[-5:] == ["B","B","B","B","B"]:
         return ("P", "Reversão 5x")
 
     if h[-5:] == ["P","P","P","P","P"]:
         return ("B", "Reversão 5x")
 
+    # reversão média
+    if h[-4:] == ["B","B","B","B"]:
+        return ("P", "Reversão 4x")
+
+    if h[-4:] == ["P","P","P","P"]:
+        return ("B", "Reversão 4x")
+
     # alternância
-    if h[-6:] == ["B","P","B","P","B","P"]:
-        return ("B", "Alternância longa")
+    if h[-4:] == ["B","P","B","P"]:
+        return ("B", "Alternância")
 
-    if h[-6:] == ["P","B","P","B","P","B"]:
-        return ("P", "Alternância longa")
+    if h[-4:] == ["P","B","P","B"]:
+        return ("P", "Alternância")
 
-    # tendência
+    # tendência curta
     if h[-3:] == ["B","B","B"]:
         return ("B", "Trend 3x")
 
     if h[-3:] == ["P","P","P"]:
         return ("P", "Trend 3x")
 
-    # quebra
-    if h[-4:] == ["B","B","P","B"]:
-        return ("P", "Quebra")
+    # quebra de sequência
+    if len(h) >= 5:
+        if h[-3] == h[-4] and h[-1] != h[-2]:
+            return ("P" if h[-1] == "B" else "B", "Quebra")
 
-    if h[-4:] == ["P","P","B","P"]:
-        return ("B", "Quebra")
-
-    # filtro anti-surf simples
+    # 🔥 filtro anti-surf
     if len(h) >= 10:
         b = h[-10:].count("B")
         p = h[-10:].count("P")
@@ -103,7 +115,10 @@ ultimo = None
 entrada_ativa = None
 gale = 0
 
-enviar("🚀 BOT ONLINE")
+enviar("🚀 BOT EM TESTE")
+
+# 🔥 modo teste rápido (opcional)
+delay = 1 if MODO_TESTE else 2
 
 while True:
     resultado = pegar_resultado()
@@ -115,7 +130,7 @@ while True:
         print("RESULTADO:", resultado)
 
         # ------------------------
-        # 🔥 SE EXISTE ENTRADA ATIVA
+        # 🔥 SE TEM ENTRADA
         if entrada_ativa:
             esperado = entrada_ativa["lado"]
 
@@ -125,19 +140,16 @@ while True:
                 gale = 0
 
             else:
-                # gale 1
                 if gale == 0:
                     gale = 1
                     enviar("⚠️ GALE 1")
-
-                # gale 2
                 else:
                     enviar_resultado(False)
                     entrada_ativa = None
                     gale = 0
 
         # ------------------------
-        # 🔥 SE NÃO TEM ENTRADA ATIVA
+        # 🔥 NOVA ENTRADA
         else:
             sinal = analisar(historico)
 
@@ -149,4 +161,4 @@ while True:
 
                 enviar_entrada(sinal[0], sinal[1])
 
-    time.sleep(2)  # ⏱️ mais rápido pra teste
+    time.sleep(delay)
