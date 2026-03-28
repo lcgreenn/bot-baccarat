@@ -100,9 +100,9 @@ def placar():
 
 # ------------------------
 
-enviar("🚀 BOT INICIADO")
-
-while True:
+if not inicio_enviado:
+    enviar("🚀 BOT INICIADO")
+    inicio_enviado = True
 
     game_id, resultado = pegar_dados()
 
