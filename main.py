@@ -107,7 +107,7 @@ def analisar(h):
         score += 1
 
     # 🔥 FILTRO FINAL
-    if score < 4:
+    if score < 3:
         return None, score
 
     return entrada, score
