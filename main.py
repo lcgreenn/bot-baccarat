@@ -1,7 +1,7 @@
 import requests
 import time
 
-TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
+TOKEN = "8781756079:AAF39To2Wh_v8IN1koM14nLQHDK-WTIyPJI"
 CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
@@ -18,8 +18,10 @@ wins = 0
 losses = 0
 total = 0
 
-# 🔥 NOVA VARIÁVEL (EVITA REPETIÇÃO DO RELATÓRIO)
 ultimo_relatorio = 0
+
+# 🔥 CONTROLE DE RECUPERAÇÃO
+ultima_acao = time.time()
 
 # ------------------------
 
@@ -54,7 +56,6 @@ def pegar_dados():
 
 # ------------------------
 
-# 🔥 ESTRATÉGIA
 def analisar(h):
     if len(h) < 4:
         return None, 0
@@ -67,7 +68,6 @@ def analisar(h):
     b = ultimos.count("B")
     p = ultimos.count("P")
 
-    # 🔥 MAIS AGRESSIVO: tendência leve
     if b >= 4:
         score += 2
         entrada = "B"
@@ -75,7 +75,6 @@ def analisar(h):
         score += 2
         entrada = "P"
 
-    # 🔥 REVERSÃO SIMPLES
     if ultimos[-3:] == ["B","B","B"]:
         score += 1
         entrada = "P"
@@ -85,6 +84,7 @@ def analisar(h):
         entrada = "B"
 
     return entrada, score
+
 # ------------------------
 
 def enviar_entrada(entrada, score):
@@ -119,6 +119,16 @@ enviar("🚀 BOT INICIADO")
 
 while True:
 
+    # 🔥 AUTO-RECUPERAÇÃO (DESTRAVA O BOT)
+    if time.time() - ultima_acao > 120:
+        enviar("🔄 BOT DESINCRONIZADO — RESET AUTOMÁTICO")
+
+        entrada_ativa = None
+        gale = 0
+        ultimo_processado = None
+
+        ultima_acao = time.time()
+
     game_id, resultado = pegar_dados()
 
     if not game_id or not resultado:
@@ -130,10 +140,12 @@ while True:
         continue
 
     ultimo_processado = game_id
-
     historico.append(resultado)
 
     print("RESULTADO:", resultado)
+
+    # 🔥 atualiza ação
+    ultima_acao = time.time()
 
     # =========================
     # PROCESSAR ENTRADA
@@ -153,11 +165,15 @@ while True:
             entrada_ativa = None
             gale = 0
 
+            ultima_acao = time.time()
+
         else:
 
             if gale < MAX_GALE:
                 gale += 1
                 enviar(f"⚠️ GALE {gale}")
+
+                ultima_acao = time.time()
 
             else:
                 atualizar_stats(False)
@@ -166,6 +182,8 @@ while True:
 
                 entrada_ativa = None
                 gale = 0
+
+                ultima_acao = time.time()
 
     # =========================
     # NOVA ENTRADA
@@ -182,6 +200,8 @@ while True:
 
             enviar_entrada(entrada, score)
 
+            ultima_acao = time.time()
+
     # =========================
     # RELATÓRIO (SEM REPETIR)
     # =========================
@@ -197,5 +217,7 @@ while True:
 """)
 
         ultimo_relatorio = total
+
+        ultima_acao = time.time()
 
     time.sleep(1)
