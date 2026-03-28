@@ -7,7 +7,8 @@ CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
-FORCAR_ENTRADA = True
+entrada_ativa = None
+ultimo_id = None
 
 def enviar(msg):
     try:
@@ -18,46 +19,43 @@ def enviar(msg):
     except:
         pass
 
-def pegar_resultado():
+def pegar_dados():
     try:
         r = requests.get(URL, timeout=10)
         data = r.json()
 
+        game_id = data["data"]["id"]
         outcome = data["data"]["result"]["outcome"]
 
         if outcome == "Banker":
-            return "B"
+            return game_id, "B"
         elif outcome == "Player":
-            return "P"
+            return game_id, "P"
         elif outcome == "Tie":
-            return "T"
+            return game_id, "T"
 
     except:
-        return None
+        return None, None
 
-# ------------------------
-
-entrada_ativa = None
-ultimo_resultado = None
-
-def fazer_entrada():
+def nova_entrada():
     return random.choice(["B", "P"])
 
-enviar("🚀 TESTE INICIADO")
+enviar("🚀 BOT INICIADO")
 
 while True:
-    resultado = pegar_resultado()
+    game_id, resultado = pegar_dados()
 
-    if resultado and resultado != ultimo_resultado:
-        ultimo_resultado = resultado
+    if game_id and game_id != ultimo_id:
+        ultimo_id = game_id
 
         print("RESULTADO:", resultado)
 
-        # 🔥 VERIFICA RESULTADO IMEDIATO
+        # 🔥 VERIFICA RESULTADO
         if entrada_ativa:
 
             if resultado == "T":
                 enviar("⚖️ TIE — sem perda")
+                entrada_ativa = None
                 continue
 
             if resultado == entrada_ativa:
@@ -67,9 +65,9 @@ while True:
 
             entrada_ativa = None
 
-        # 🔥 CRIA NOVA ENTRADA
-        if FORCAR_ENTRADA and not entrada_ativa:
-            entrada_ativa = fazer_entrada()
+        # 🔥 FAZ NOVA ENTRADA
+        if not entrada_ativa:
+            entrada_ativa = nova_entrada()
 
             enviar(f"""
 🎯 ENTRADA
