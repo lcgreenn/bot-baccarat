@@ -1,44 +1,35 @@
 import requests
-from bs4 import BeautifulSoup
 import time
 
-TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
-CHAT_ID = "@lcgreenbaccarat"
+TOKEN = "SEU_TOKEN_AQUI"
+CHAT_ID = "@SEU_CANAL_AQUI"
 
-URL = "https://gamblingcounting.com/evolution-speed-baccarat-a/"
+URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
 def enviar(msg):
     try:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-                      data={"chat_id": CHAT_ID, "text": msg})
+        requests.post(
+            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+            data={"chat_id": CHAT_ID, "text": msg}
+        )
     except:
         pass
 
-def pegar_resultados():
+def pegar_resultado():
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(URL, headers=headers, timeout=10)
+        r = requests.get(URL, timeout=10)
+        data = r.json()
 
-        if r.status_code != 200:
-            return None
+        # tenta pegar outcome
+        outcome = data.get("outcome")
 
-        soup = BeautifulSoup(r.text, "html.parser")
-        resultados = []
-
-        for div in soup.find_all("div"):
-            classes = " ".join(div.get("class", []))
-
-            if "red" in classes:
-                resultados.append("B")
-            elif "blue" in classes:
-                resultados.append("P")
-            elif "green" in classes:
-                resultados.append("T")
-
-        if len(resultados) < 5:
-            return None
-
-        return resultados[-20:]
+        if outcome:
+            if "banker" in outcome.lower():
+                return "B"
+            elif "player" in outcome.lower():
+                return "P"
+            elif "tie" in outcome.lower():
+                return "T"
 
     except:
         return None
@@ -70,31 +61,21 @@ def enviar_sinal(entrada, estrategia):
 """)
 
 historico = []
-falhas = 0
+ultimo = None
 
-enviar("🚀 BOT VIP ONLINE")
+enviar("🚀 BOT API ONLINE (DADOS REAIS)")
 
 while True:
-    dados = pegar_resultados()
+    resultado = pegar_resultado()
 
-    if dados is None:
-        falhas += 1
-        print("Falha ao puxar")
+    if resultado and resultado != ultimo:
+        ultimo = resultado
+        historico.append(resultado)
 
-        if falhas >= 5:
-            enviar("⚠️ Site instável, tentando reconectar...")
-            falhas = 0
+        print("NOVO RESULTADO:", resultado)
 
-        time.sleep(25)
-        continue
-
-    falhas = 0
-
-    if dados != historico:
-        historico = dados
-
-        sinal = analisar(dados)
+        sinal = analisar(historico)
         if sinal:
             enviar_sinal(sinal[0], sinal[1])
 
-    time.sleep(20)
+    time.sleep(5)
