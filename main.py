@@ -29,45 +29,53 @@ def pegar_resultado():
         elif outcome == "Tie":
             return "T"
 
-    except Exception as e:
-        print("ERRO API:", e)
-
-    return None
-
-def analisar(h):
-    if len(h) < 5:
+    except:
         return None
 
-    # Reversão
-    if h[-3:] == ["B","B","B"]:
-        return ("PLAYER", "Reversão 3x")
+# 🔥 ESTRATÉGIA MELHORADA (menos sinais)
+def analisar(h):
+    if len(h) < 6:
+        return None
 
-    if h[-3:] == ["P","P","P"]:
-        return ("BANKER", "Reversão 3x")
+    # sequência forte (4 iguais)
+    if h[-4:] == ["B","B","B","B"]:
+        return ("PLAYER", "Reversão forte 4x")
 
-    # Alternância
-    if h[-4:] == ["B","P","B","P"]:
-        return ("BANKER", "Continuidade")
+    if h[-4:] == ["P","P","P","P"]:
+        return ("BANKER", "Reversão forte 4x")
+
+    # padrão alternado forte
+    if h[-5:] == ["B","P","B","P","B"]:
+        return ("P", "Alternância")
 
     return None
 
-def enviar_sinal(entrada, estrategia):
+def enviar_entrada(entrada, estrategia):
     enviar(f"""
 🚨 ENTRADA CONFIRMADA
 
 🎯 Entrada: {entrada}
 📊 Estratégia: {estrategia}
-🛡️ Gale 1
+🛡️ Gale: 1
 
-🔥 FOCO
+🔥 FOCO TOTAL
 """)
+
+def enviar_resultado(resultado):
+    if resultado:
+        enviar("✅ WIN")
+    else:
+        enviar("❌ LOSS")
 
 # ------------------------
 
 historico = []
 ultimo = None
 
-enviar("🚀 BOT API ONLINE (DADOS REAIS)")
+entrada_ativa = None
+gale = 0
+
+enviar("🚀 BOT VIP ONLINE")
 
 while True:
     resultado = pegar_resultado()
@@ -76,10 +84,31 @@ while True:
         ultimo = resultado
         historico.append(resultado)
 
-        print("NOVO RESULTADO:", resultado)
+        print("RESULTADO:", resultado)
 
-        sinal = analisar(historico)
-        if sinal:
-            enviar_sinal(sinal[0], sinal[1])
+        # 🔥 SE TEM ENTRADA ATIVA
+        if entrada_ativa:
+            esperado = entrada_ativa
+
+            if resultado == esperado:
+                enviar_resultado(True)
+                entrada_ativa = None
+                gale = 0
+
+            elif gale == 0:
+                gale = 1
+                enviar("⚠️ GALE 1")
+
+            else:
+                enviar_resultado(False)
+                entrada_ativa = None
+                gale = 0
+
+        else:
+            sinal = analisar(historico)
+
+            if sinal:
+                entrada_ativa = sinal[0][0]  # B ou P
+                enviar_entrada(sinal[0], sinal[1])
 
     time.sleep(5)
