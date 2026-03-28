@@ -2,12 +2,11 @@ import requests
 import time
 import random
 
-TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
+TOKEN = "token bot baccarat : 8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
 CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
-# 🔥 MODO TESTE FORÇADO
 FORCAR_ENTRADA = True
 
 def enviar(msg):
@@ -30,6 +29,8 @@ def pegar_resultado():
             return "B"
         elif outcome == "Player":
             return "P"
+        elif outcome == "Tie":
+            return "T"
 
     except:
         return None
@@ -37,34 +38,28 @@ def pegar_resultado():
 # ------------------------
 
 entrada_ativa = None
-ultimo = None
+ultimo_resultado = None
 
 def fazer_entrada():
-    lado = random.choice(["B", "P"])
-    return lado
+    return random.choice(["B", "P"])
 
-enviar("🚀 TESTE DE ENTRADAS ATIVO")
+enviar("🚀 TESTE INICIADO")
 
 while True:
     resultado = pegar_resultado()
 
-    if resultado and resultado != ultimo:
-        ultimo = resultado
+    if resultado and resultado != ultimo_resultado:
+        ultimo_resultado = resultado
 
         print("RESULTADO:", resultado)
 
-        # 🔥 SE NÃO TEM ENTRADA ATIVA → FAZ UMA
-        if FORCAR_ENTRADA and not entrada_ativa:
-            entrada_ativa = fazer_entrada()
+        # 🔥 VERIFICA RESULTADO IMEDIATO
+        if entrada_ativa:
 
-            enviar(f"""
-🎯 ENTRADA FORÇADA
+            if resultado == "T":
+                enviar("⚖️ TIE — sem perda")
+                continue
 
-👉 {entrada_ativa}
-""")
-
-        # 🔥 SE TEM ENTRADA → VERIFICA RESULTADO
-        elif entrada_ativa:
             if resultado == entrada_ativa:
                 enviar("✅ WIN")
             else:
@@ -72,4 +67,14 @@ while True:
 
             entrada_ativa = None
 
-    time.sleep(2)
+        # 🔥 CRIA NOVA ENTRADA
+        if FORCAR_ENTRADA and not entrada_ativa:
+            entrada_ativa = fazer_entrada()
+
+            enviar(f"""
+🎯 ENTRADA
+
+👉 {entrada_ativa}
+""")
+
+    time.sleep(1)
