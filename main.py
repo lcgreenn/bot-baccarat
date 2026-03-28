@@ -160,7 +160,7 @@ while True:
 
         entrada, score = analisar(historico)
 
-        if entrada and score >= 6:
+        if entrada and score >= 2:
 
             entrada_ativa = entrada
             gale = 0
