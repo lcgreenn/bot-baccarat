@@ -57,7 +57,7 @@ def pegar_dados():
 # 🧠 SCORE PROFISSIONAL
 
 def analisar(h):
-    if len(h) < 3:
+    if len(h) < 8:
         return None, 0
 
     score = 0
@@ -184,7 +184,7 @@ while True:
         entrada, score = analisar(historico)
 
         # 🔥 REGRA PROFISSIONAL DE ENTRADA
-        if entrada and score >= 2 and not entrada_ativa:
+        if entrada and score >= 6 and not entrada_ativa:
 
             entrada_ativa = entrada
             gale = 0
