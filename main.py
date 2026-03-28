@@ -56,20 +56,35 @@ def pegar_dados():
 
 # 🔥 ESTRATÉGIA
 def analisar(h):
-    if len(h) < 6:
-        return None
+    if len(h) < 4:
+        return None, 0
 
-    if h[-4:] == ["B","B","B","B"]:
-        return ("PLAYER", "Reversão forte 4x")
+    ultimos = h[-6:]
 
-    if h[-4:] == ["P","P","P","P"]:
-        return ("BANKER", "Reversão forte 4x")
+    score = 0
+    entrada = None
 
-    if h[-5:] == ["B","P","B","P","B"]:
-        return ("P", "Alternância")
+    b = ultimos.count("B")
+    p = ultimos.count("P")
 
-    return None
+    # 🔥 MAIS AGRESSIVO: tendência leve
+    if b >= 4:
+        score += 2
+        entrada = "B"
+    elif p >= 4:
+        score += 2
+        entrada = "P"
 
+    # 🔥 REVERSÃO SIMPLES
+    if ultimos[-3:] == ["B","B","B"]:
+        score += 1
+        entrada = "P"
+
+    elif ultimos[-3:] == ["P","P","P"]:
+        score += 1
+        entrada = "B"
+
+    return entrada, score
 # ------------------------
 
 def enviar_entrada(entrada, score):
@@ -100,9 +115,9 @@ def placar():
 
 # ------------------------
 
-if not inicio_enviado:
-    enviar("🚀 BOT INICIADO")
-    inicio_enviado = True
+enviar("🚀 BOT INICIADO")
+
+while True:
 
     game_id, resultado = pegar_dados()
 
