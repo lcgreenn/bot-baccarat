@@ -84,7 +84,58 @@ def analisar(h):
     elif ultimos[-3:] == ["P","P","P"]:
         score += 1
         entrada = "B"
+        
+     # 🔥 TENDÊNCIA (forte)
+    if b >= 6:
+        score += 3
+        entrada = "B"
+    elif p >= 6:
+        score += 3
+        entrada = "P"
 
+    # 🔥 TENDÊNCIA MÉDIA
+    if b >= 5:
+        score += 2
+        entrada = "B"
+    elif p >= 5:
+        score += 2
+        entrada = "P"
+
+    # 🔥 REVERSÃO (padrão clássico)
+    if ultimos[-4:] == ["B","B","B","B"]:
+        score += 3
+        entrada = "P"
+
+    elif ultimos[-4:] == ["P","P","P","P"]:
+        score += 3
+        entrada = "B"
+
+    # 🔥 ALTERNÂNCIA FORTE (ex: B P B P)
+    alternancias = 0
+    for i in range(len(ultimos)-1):
+        if ultimos[i] != ultimos[i+1]:
+            alternancias += 1
+
+    if alternancias >= 6:
+        score += 2
+        entrada = None  # ⚠️ evita entrar em chop
+
+    # 🔥 CHOP FILTER (mercado bagunçado)
+    if alternancias >= 7:
+        return None, 0  # ❌ não entra
+
+    # 🔥 SURF (tendência limpa)
+    if (b >= 7 and alternancias <= 3) or (p >= 7 and alternancias <= 3):
+        score += 2
+
+    # 🔥 CONFIRMAÇÃO DE CONTINUIDADE
+    if len(ultimos) >= 3 and ultimos[-1] == ultimos[-2] == ultimos[-3]:
+        score += 1
+
+    # 🔥 LIMITE MÍNIMO PRA ENTRADA
+    if score < 4:
+        return None, score
+        
     return entrada, score
 
 # ------------------------
