@@ -1,5 +1,6 @@
 import requests
 import time
+import random
 
 TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
 CHAT_ID = "@lcgreenbaccarat"
@@ -9,6 +10,7 @@ URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/la
 # ------------------------
 
 entrada_ativa = None
+ultimo_id = None
 ultimo_processado = None
 
 gale = 0
@@ -54,44 +56,52 @@ def pegar_dados():
 # ------------------------
 
 def analisar(h):
-    if len(h) < 12:
+    if len(h) < 10:
         return None, 0
-
-    ultimos = h[-10:]
 
     score = 0
     entrada = None
 
-    b = ultimos.count("B")
-    p = ultimos.count("P")
-
-    # 🔥 TENDÊNCIA FORTE
-    if b >= 7:
-        score += 4
-        entrada = "B"
-    elif p >= 7:
-        score += 4
+    # 🔥 TENDÊNCIA LONGA (mais forte)
+    if h[-5:] == ["B","B","B","B","B"]:
+        score += 5
         entrada = "P"
 
-    # 🔥 REVERSÃO
-    if ultimos[-4:] == ["B","B","B","B"]:
+    elif h[-5:] == ["P","P","P","P","P"]:
+        score += 5
+        entrada = "B"
+
+    # 🔥 TENDÊNCIA MÉDIA (com confirmação)
+    elif h[-4:] == ["B","B","B","B"]:
         score += 3
         entrada = "P"
 
-    elif ultimos[-4:] == ["P","P","P","P"]:
+    elif h[-4:] == ["P","P","P","P"]:
         score += 3
         entrada = "B"
 
-    # 🔥 CHOP FILTER
-    alternancias = 0
-    for i in range(len(ultimos)-1):
-        if ultimos[i] != ultimos[i+1]:
-            alternancias += 1
+    # 🔥 CONFIRMAÇÃO DE CONTINUIDADE
+    if h[-3:] == ["B","B","B"]:
+        score += 2
 
-    if alternancias >= 7:
+    if h[-3:] == ["P","P","P"]:
+        score += 2
+
+    # 🔥 FILTRO CHOP FORTE (EVITA LIXO)
+    if h[-6:] == ["B","P","B","P","B","P"]:
         return None, 0
 
-    score += abs(b - p)
+    if h[-6:] == ["P","B","P","B","P","B"]:
+        return None, 0
+
+    # 🔥 FILTRO DE ALEATORIEDADE
+    ultimos = h[-6:]
+    if ultimos.count("B") == 3 and ultimos.count("P") == 3:
+        return None, 0
+
+    # 🔥 REGRA FINAL DE QUALIDADE
+    if score < 7:
+        return None, score
 
     return entrada, score
 
@@ -101,7 +111,7 @@ def enviar_entrada(entrada, score):
     enviar(f"""
 🚨 ENTRADA
 
-🎯 Direção: {entrada}
+🎯 {entrada}
 📊 Score: {score}/10
 🛡️ Gale: {MAX_GALE}
 """)
@@ -125,11 +135,7 @@ def placar():
 
 # ------------------------
 
-enviar("🚀 BOT INICIADO")
-
-# ------------------------
-# LOOP PRINCIPAL
-# ------------------------
+enviar("🚀 BOT CORRIGIDO INICIADO")
 
 while True:
 
@@ -139,20 +145,19 @@ while True:
         time.sleep(1)
         continue
 
-    # evita duplicação
+    # 🔒 evita processar o mesmo resultado
     if game_id == ultimo_processado:
         time.sleep(1)
         continue
 
     ultimo_processado = game_id
 
-    print("RESULTADO:", resultado)
-
-    # adiciona histórico
     historico.append(resultado)
 
+    print("RESULTADO:", resultado)
+
     # =========================
-    # RESULTADO DA ENTRADA
+    # 🔥 PROCESSAR ENTRADA ATIVA
     # =========================
 
     if entrada_ativa:
@@ -163,6 +168,7 @@ while True:
         elif resultado == entrada_ativa:
 
             atualizar_stats(True)
+
             enviar("✅ WIN")
 
             entrada_ativa = None
@@ -171,27 +177,26 @@ while True:
         else:
 
             if gale < MAX_GALE:
-
                 gale += 1
                 enviar(f"⚠️ GALE {gale}")
 
             else:
-
                 atualizar_stats(False)
-                enviar("❌ LOSS")
+
+                enviar("❌ LOSS FINAL")
 
                 entrada_ativa = None
                 gale = 0
 
     # =========================
-    # NOVA ENTRADA
+    # 🔥 NOVA ENTRADA
     # =========================
 
     if entrada_ativa is None:
 
         entrada, score = analisar(historico)
 
-        if entrada and score >= 7:
+        if entrada and score >= 6:
 
             entrada_ativa = entrada
             gale = 0
@@ -199,7 +204,7 @@ while True:
             enviar_entrada(entrada, score)
 
     # =========================
-    # RELATÓRIO
+    # 📊 RELATÓRIO
     # =========================
 
     if total > 0 and total % 10 == 0:
