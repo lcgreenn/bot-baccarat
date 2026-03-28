@@ -8,9 +8,9 @@ CHAT_ID = "@lcgreenbaccarat"
 URL = "https://gamblingcounting.com/evolution-speed-baccarat-a/"
 
 def enviar(msg):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     try:
-        requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                      data={"chat_id": CHAT_ID, "text": msg})
     except:
         pass
 
@@ -18,13 +18,15 @@ def pegar_resultados():
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         r = requests.get(URL, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
 
+        if r.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(r.text, "html.parser")
         resultados = []
 
-        # pega os círculos pelos estilos/classes
         for div in soup.find_all("div"):
-            classes = str(div.get("class"))
+            classes = " ".join(div.get("class", []))
 
             if "red" in classes:
                 resultados.append("B")
@@ -33,12 +35,12 @@ def pegar_resultados():
             elif "green" in classes:
                 resultados.append("T")
 
-        print("RESULTADOS:", resultados)
+        if len(resultados) < 5:
+            return None
 
-        return resultados[-15:]
+        return resultados[-20:]
 
-    except Exception as e:
-        print("ERRO:", e)
+    except:
         return None
 
 def analisar(h):
@@ -57,34 +59,42 @@ def analisar(h):
     return None
 
 def enviar_sinal(entrada, estrategia):
-    msg = f"""
+    enviar(f"""
 🚨 ENTRADA CONFIRMADA
 
 🎯 Entrada: {entrada}
 📊 Estratégia: {estrategia}
-🛡️ Proteção: Gale 1
+🛡️ Gale 1
 
-🔥 FOCO TOTAL
-"""
-    enviar(msg)
+🔥 FOCO
+""")
 
-historico_antigo = []
+historico = []
+falhas = 0
 
-enviar("⚙️ BOT LENDO CORES (DADOS REAIS)")
+enviar("🚀 BOT VIP ONLINE")
 
 while True:
-    h = pegar_resultados()
+    dados = pegar_resultados()
 
-    if not h:
-        time.sleep(20)
+    if dados is None:
+        falhas += 1
+        print("Falha ao puxar")
+
+        if falhas >= 5:
+            enviar("⚠️ Site instável, tentando reconectar...")
+            falhas = 0
+
+        time.sleep(25)
         continue
 
-    if h != historico_antigo:
-        historico_antigo = h
+    falhas = 0
 
-        sinal = analisar(h)
+    if dados != historico:
+        historico = dados
 
+        sinal = analisar(dados)
         if sinal:
             enviar_sinal(sinal[0], sinal[1])
 
-    time.sleep(15)
+    time.sleep(20)
