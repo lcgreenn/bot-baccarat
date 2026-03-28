@@ -184,7 +184,7 @@ while True:
         entrada, score = analisar(historico)
 
         # 🔥 REGRA PROFISSIONAL DE ENTRADA
-        if entrada and score >= 6 and not entrada_ativa:
+        if entrada and score >= 2 and not entrada_ativa:
 
             entrada_ativa = entrada
             gale = 0
