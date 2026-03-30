@@ -83,7 +83,7 @@ def analisar(h):
         score += 2
         entrada = "P"
 
-    # 🔥 REVERSÃO CLÁSSICA
+    # 🔥 REVERSÃO
     if ult[-4:] == ["B","B","B","B"]:
         score += 2
         entrada = "P"
@@ -105,7 +105,7 @@ def analisar(h):
     if alternancias >= 4:
         score -= 1
 
-    # 🔥 LIMITE FINAL
+    # 🔥 LIMITE
     if score < 3:
         return None, score
 
@@ -139,13 +139,13 @@ def placar():
 
 # ------------------------
 
-enviar("🚀 BOT INICIADO (SEM GALE - ESTÁVEL)")
+enviar("🚀 BOT INICIADO (SEM GALE - TIE CORRIGIDO)")
 
 while True:
 
     agora = time.time()
 
-    # 🔥 RESET REAL (SEM SPAM)
+    # 🔥 RESET INTELIGENTE
     if agora - ultimo_update > TEMPO_LIMITE:
         if not ja_resetou:
             enviar("♻️ RE-SINCRONIZANDO...")
@@ -172,15 +172,24 @@ while True:
 
     print("RESULTADO:", resultado)
 
-    # 🔥 TIE NEUTRO
+    # =========================
+    # 🔥 TIE = ENCERRA ENTRADA
+    # =========================
+
     if resultado == "T":
+
         enviar("⚖️ TIE")
+
+        if entrada_ativa:
+            enviar("⚪️ ENTRADA CANCELADA (TIE)")
+            entrada_ativa = None
+
         continue
 
     historico.append(resultado)
 
     # =========================
-    # RESULTADO DA ENTRADA
+    # RESULTADO
     # =========================
 
     if entrada_ativa:
