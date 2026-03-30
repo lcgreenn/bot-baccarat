@@ -1,7 +1,7 @@
 import requests
 import time
 
-TOKEN = "8781756079:AAF39To2Wh_v8IM1koM14nLQHDK-WTIyPJI"
+TOKEN = "SEU_TOKEN"
 CHAT_ID = "@lcgreenbaccarat"
 
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
@@ -108,7 +108,6 @@ def analisar(h):
     b = ult.count("B")
     p = ult.count("P")
 
-    # 🔥 tendência forte
     if b >= 6:
         score += 3
         entrada = "B"
@@ -116,7 +115,6 @@ def analisar(h):
         score += 3
         entrada = "P"
 
-    # 🔥 tendência média
     elif b >= 5:
         score += 2
         entrada = "B"
@@ -124,7 +122,6 @@ def analisar(h):
         score += 2
         entrada = "P"
 
-    # 🔥 reversão
     if ult[-4:] == ["B","B","B","B"]:
         score += 2
         entrada = "P"
@@ -133,11 +130,9 @@ def analisar(h):
         score += 2
         entrada = "B"
 
-    # 🔥 continuidade
     if len(ult) >= 3 and ult[-1] == ult[-2]:
         score += 1
 
-    # 🔥 chop filter
     alternancias = sum(1 for i in range(len(ult)-1) if ult[i] != ult[i+1])
 
     if alternancias >= 6:
@@ -179,7 +174,7 @@ def placar():
 
 # ------------------------
 
-enviar("🚀 BOT INICIADO (FINAL ESTÁVEL)")
+enviar("🚀 BOT INICIADO (TIE FIXADO)")
 
 while True:
 
@@ -191,7 +186,6 @@ while True:
 
     agora = time.time()
 
-    # 🔥 reset inteligente
     if agora - ultimo_update > TEMPO_LIMITE:
         if not ja_resetou:
             enviar("♻️ RE-SINCRONIZANDO...")
@@ -217,13 +211,15 @@ while True:
 
     print("RESULTADO:", resultado)
 
-    # =========================
-    # 🔥 TIE (CORRIGIDO)
-    # =========================
+    # 🔥 SALVA SE HAVIA ENTRADA ANTES DO RESULTADO
+    tinha_entrada = entrada_ativa is not None
 
+    # =========================
+    # 🔥 TIE CORRETO (SEM BUG)
+    # =========================
     if resultado == "T":
 
-        if entrada_ativa:
+        if tinha_entrada:
             enviar("⚖️ TIE")
             enviar("⚪️ ENTRADA CANCELADA (TIE)")
             entrada_ativa = None
@@ -233,10 +229,10 @@ while True:
     historico.append(resultado)
 
     # =========================
-    # RESULTADO
+    # RESULTADO NORMAL
     # =========================
 
-    if entrada_ativa:
+    if tinha_entrada:
 
         if resultado == entrada_ativa:
             atualizar_stats(True)
