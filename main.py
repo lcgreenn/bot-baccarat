@@ -17,6 +17,10 @@ total = 0
 
 ultimo_relatorio = 0
 
+# 🔥 CONTROLE TELEGRAM
+offset = None
+rodando = True
+
 # 🔥 ESTABILIDADE
 ultimo_update = time.time()
 TEMPO_LIMITE = 120
@@ -30,6 +34,43 @@ def enviar(msg):
             f"https://api.telegram.org/bot{TOKEN}/sendMessage",
             data={"chat_id": CHAT_ID, "text": msg}
         )
+    except:
+        pass
+
+# ------------------------
+
+def verificar_comandos():
+    global offset, rodando
+
+    try:
+        url = f"https://api.telegram.org/bot{TOKEN}/getUpdates"
+        if offset:
+            url += f"?offset={offset}"
+
+        r = requests.get(url, timeout=10).json()
+
+        for update in r["result"]:
+            offset = update["update_id"] + 1
+
+            if "message" in update:
+                texto = update["message"].get("text", "")
+
+                if texto == "/stop":
+                    rodando = False
+                    enviar("⛔ BOT PAUSADO")
+
+                elif texto == "/start":
+                    rodando = True
+                    enviar("▶️ BOT ATIVADO")
+
+                elif texto == "/status":
+                    enviar(f"""
+📊 STATUS
+
+🏆 Wins: {wins}
+❌ Losses: {losses}
+📈 Winrate: {placar():.2f}%
+""")
     except:
         pass
 
@@ -67,7 +108,7 @@ def analisar(h):
     b = ult.count("B")
     p = ult.count("P")
 
-    # 🔥 TENDÊNCIA FORTE
+    # 🔥 tendência forte
     if b >= 6:
         score += 3
         entrada = "B"
@@ -75,7 +116,7 @@ def analisar(h):
         score += 3
         entrada = "P"
 
-    # 🔥 TENDÊNCIA MÉDIA
+    # 🔥 tendência média
     elif b >= 5:
         score += 2
         entrada = "B"
@@ -83,7 +124,7 @@ def analisar(h):
         score += 2
         entrada = "P"
 
-    # 🔥 REVERSÃO
+    # 🔥 reversão
     if ult[-4:] == ["B","B","B","B"]:
         score += 2
         entrada = "P"
@@ -92,11 +133,11 @@ def analisar(h):
         score += 2
         entrada = "B"
 
-    # 🔥 CONTINUIDADE
+    # 🔥 continuidade
     if len(ult) >= 3 and ult[-1] == ult[-2]:
         score += 1
 
-    # 🔥 CHOP FILTER
+    # 🔥 chop filter
     alternancias = sum(1 for i in range(len(ult)-1) if ult[i] != ult[i+1])
 
     if alternancias >= 6:
@@ -105,7 +146,6 @@ def analisar(h):
     if alternancias >= 4:
         score -= 1
 
-    # 🔥 LIMITE
     if score < 3:
         return None, score
 
@@ -139,13 +179,19 @@ def placar():
 
 # ------------------------
 
-enviar("🚀 BOT INICIADO (SEM GALE - TIE CORRIGIDO)")
+enviar("🚀 BOT INICIADO (FINAL ESTÁVEL)")
 
 while True:
 
+    verificar_comandos()
+
+    if not rodando:
+        time.sleep(1)
+        continue
+
     agora = time.time()
 
-    # 🔥 RESET INTELIGENTE
+    # 🔥 reset inteligente
     if agora - ultimo_update > TEMPO_LIMITE:
         if not ja_resetou:
             enviar("♻️ RE-SINCRONIZANDO...")
@@ -165,7 +211,6 @@ while True:
         time.sleep(1)
         continue
 
-    # 🔥 NOVA RODADA
     ultimo_game = game_id
     ultimo_update = time.time()
     ja_resetou = False
@@ -173,14 +218,13 @@ while True:
     print("RESULTADO:", resultado)
 
     # =========================
-    # 🔥 TIE = ENCERRA ENTRADA
+    # 🔥 TIE (CORRIGIDO)
     # =========================
 
     if resultado == "T":
 
-        enviar("⚖️ TIE")
-
         if entrada_ativa:
+            enviar("⚖️ TIE")
             enviar("⚪️ ENTRADA CANCELADA (TIE)")
             entrada_ativa = None
 
