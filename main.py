@@ -173,14 +173,8 @@ while True:
     print("RESULTADO:", resultado)
 
     # 🔥 TIE NEUTRO
-   if resultado == "T":
-
-    enviar("⚖️ TIE")
-
-    # 🔥 se tinha entrada ativa, FINALIZA ela
-    if entrada_ativa:
-        enviar("⚪️ ENTRADA CANCELADA (TIE)")
-        entrada_ativa = None
+    if resultado == "T":
+        enviar("⚖️ TIE")
         continue
 
     historico.append(resultado)
