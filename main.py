@@ -7,10 +7,7 @@ CHAT_ID = "@lcgreenbaccarat"
 URL = "https://api-cs.casino.org/svc-evolution-game-events/api/speedbaccarata/latest"
 
 entrada_ativa = None
-ultimo_processado = None
-
-gale = 0
-MAX_GALE = 1
+ultimo_game = None
 
 historico = []
 
@@ -20,8 +17,10 @@ total = 0
 
 ultimo_relatorio = 0
 
-# 🔥 CONTROLE DE RECUPERAÇÃO
-ultima_acao = time.time()
+# 🔥 ESTABILIDADE
+ultimo_update = time.time()
+TEMPO_LIMITE = 120
+ja_resetou = False
 
 # ------------------------
 
@@ -57,35 +56,18 @@ def pegar_dados():
 # ------------------------
 
 def analisar(h):
-    if len(h) < 4:
+    if len(h) < 6:
         return None, 0
 
-    ultimos = h[-6:]
+    ult = h[-8:]
 
     score = 0
     entrada = None
 
-    b = ultimos.count("B")
-    p = ultimos.count("P")
+    b = ult.count("B")
+    p = ult.count("P")
 
-    # 🔥 MAIS AGRESSIVO: tendência leve
-    if b >= 4:
-        score += 2
-        entrada = "B"
-    elif p >= 4:
-        score += 2
-        entrada = "P"
-
-    # 🔥 REVERSÃO SIMPLES
-    if ultimos[-3:] == ["B","B","B"]:
-        score += 1
-        entrada = "P"
-
-    elif ultimos[-3:] == ["P","P","P"]:
-        score += 1
-        entrada = "B"
-        
-     # 🔥 TENDÊNCIA (forte)
+    # 🔥 TENDÊNCIA FORTE
     if b >= 6:
         score += 3
         entrada = "B"
@@ -94,48 +76,39 @@ def analisar(h):
         entrada = "P"
 
     # 🔥 TENDÊNCIA MÉDIA
-    if b >= 5:
+    elif b >= 5:
         score += 2
         entrada = "B"
     elif p >= 5:
         score += 2
         entrada = "P"
 
-    # 🔥 REVERSÃO (padrão clássico)
-    if ultimos[-4:] == ["B","B","B","B"]:
-        score += 3
+    # 🔥 REVERSÃO CLÁSSICA
+    if ult[-4:] == ["B","B","B","B"]:
+        score += 2
         entrada = "P"
 
-    elif ultimos[-4:] == ["P","P","P","P"]:
-        score += 3
+    elif ult[-4:] == ["P","P","P","P"]:
+        score += 2
         entrada = "B"
 
-    # 🔥 ALTERNÂNCIA FORTE (ex: B P B P)
-    alternancias = 0
-    for i in range(len(ultimos)-1):
-        if ultimos[i] != ultimos[i+1]:
-            alternancias += 1
-
-    if alternancias >= 6:
-        score += 2
-        entrada = None  # ⚠️ evita entrar em chop
-
-    # 🔥 CHOP FILTER (mercado bagunçado)
-    if alternancias >= 7:
-        return None, 0  # ❌ não entra
-
-    # 🔥 SURF (tendência limpa)
-    if (b >= 7 and alternancias <= 3) or (p >= 7 and alternancias <= 3):
-        score += 2
-
-    # 🔥 CONFIRMAÇÃO DE CONTINUIDADE
-    if len(ultimos) >= 3 and ultimos[-1] == ultimos[-2] == ultimos[-3]:
+    # 🔥 CONTINUIDADE
+    if len(ult) >= 3 and ult[-1] == ult[-2]:
         score += 1
 
-    # 🔥 LIMITE MÍNIMO PRA ENTRADA
-    if score < 4:
+    # 🔥 CHOP FILTER
+    alternancias = sum(1 for i in range(len(ult)-1) if ult[i] != ult[i+1])
+
+    if alternancias >= 6:
+        return None, 0
+
+    if alternancias >= 4:
+        score -= 1
+
+    # 🔥 LIMITE FINAL
+    if score < 3:
         return None, score
-        
+
     return entrada, score
 
 # ------------------------
@@ -146,14 +119,12 @@ def enviar_entrada(entrada, score):
 
 🎯 {entrada}
 📊 Score: {score}/10
-🛡️ Gale: {MAX_GALE}
 """)
 
 # ------------------------
 
 def atualizar_stats(win):
     global wins, losses, total
-
     total += 1
 
     if win:
@@ -168,19 +139,21 @@ def placar():
 
 # ------------------------
 
-enviar("🚀 BOT INICIADO")
+enviar("🚀 BOT INICIADO (SEM GALE - ESTÁVEL)")
 
 while True:
 
-    # 🔥 AUTO-RECUPERAÇÃO (DESTRAVA O BOT)
-    if time.time() - ultima_acao > 120:
-        enviar("🔄 BOT DESINCRONIZADO — RESET AUTOMÁTICO")
+    agora = time.time()
 
-        entrada_ativa = None
-        gale = 0
-        ultimo_processado = None
+    # 🔥 RESET REAL (SEM SPAM)
+    if agora - ultimo_update > TEMPO_LIMITE:
+        if not ja_resetou:
+            enviar("♻️ RE-SINCRONIZANDO...")
+            entrada_ativa = None
+            ja_resetou = True
 
-        ultima_acao = time.time()
+        time.sleep(1)
+        continue
 
     game_id, resultado = pegar_dados()
 
@@ -188,55 +161,38 @@ while True:
         time.sleep(1)
         continue
 
-    if game_id == ultimo_processado:
+    if game_id == ultimo_game:
         time.sleep(1)
         continue
 
-    ultimo_processado = game_id
-    historico.append(resultado)
+    # 🔥 NOVA RODADA
+    ultimo_game = game_id
+    ultimo_update = time.time()
+    ja_resetou = False
 
     print("RESULTADO:", resultado)
 
-    # 🔥 atualiza ação
-    ultima_acao = time.time()
+    # 🔥 TIE NEUTRO
+    if resultado == "T":
+        enviar("⚖️ TIE")
+        continue
+
+    historico.append(resultado)
 
     # =========================
-    # PROCESSAR ENTRADA
+    # RESULTADO DA ENTRADA
     # =========================
 
     if entrada_ativa:
 
-        if resultado == "T":
-            enviar("⚖️ TIE")
-
-        elif resultado == entrada_ativa:
-
+        if resultado == entrada_ativa:
             atualizar_stats(True)
-
             enviar("✅ WIN")
-
-            entrada_ativa = None
-            gale = 0
-
-            ultima_acao = time.time()
-
         else:
+            atualizar_stats(False)
+            enviar("❌ LOSS")
 
-            if gale < MAX_GALE:
-                gale += 1
-                enviar(f"⚠️ GALE {gale}")
-
-                ultima_acao = time.time()
-
-            else:
-                atualizar_stats(False)
-
-                enviar("❌ LOSS")
-
-                entrada_ativa = None
-                gale = 0
-
-                ultima_acao = time.time()
+        entrada_ativa = None
 
     # =========================
     # NOVA ENTRADA
@@ -246,17 +202,12 @@ while True:
 
         entrada, score = analisar(historico)
 
-        if entrada and score >= 2:
-
+        if entrada:
             entrada_ativa = entrada
-            gale = 0
-
             enviar_entrada(entrada, score)
 
-            ultima_acao = time.time()
-
     # =========================
-    # RELATÓRIO (SEM REPETIR)
+    # RELATÓRIO
     # =========================
 
     if total > 0 and total % 10 == 0 and total != ultimo_relatorio:
@@ -270,7 +221,5 @@ while True:
 """)
 
         ultimo_relatorio = total
-
-        ultima_acao = time.time()
 
     time.sleep(1)
