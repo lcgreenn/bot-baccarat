@@ -97,7 +97,7 @@ def pegar_dados():
 # ------------------------
 
 def analisar(h):
-    if len(h) < 6:
+    if len(h) < 5:
         return None, 0
 
     ult = h[-8:]
